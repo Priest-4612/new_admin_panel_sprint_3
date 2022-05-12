@@ -1,6 +1,7 @@
 import time
 from functools import wraps
-from pathlib import Path
+
+from logger import get_logger
 
 RETRIES_EXCEPTION = (
     'Повторный запуск. Функция: {function}, ',
@@ -12,7 +13,9 @@ FINALLY_EXCEPTION = (
 )
 
 
-def backoff(start_sleep_time=0.1, factor=2, border_sleep_time=10):
+def backoff(
+    start_sleep_time=0.1, factor=2, border_sleep_time=10, logger=get_logger,
+):
     """
     Функция для повторного выполнения функции через некоторое время.
 
@@ -31,8 +34,9 @@ def backoff(start_sleep_time=0.1, factor=2, border_sleep_time=10):
     Returns:
         func: Кезультат выполнения функции
     """
-
     def func_wrapper(func):
+        logging = logger(func.__name__)
+
         @wraps(func)
         def inner(*args, **kwargs):
             retries = 0
@@ -56,25 +60,3 @@ def backoff(start_sleep_time=0.1, factor=2, border_sleep_time=10):
                     retries += 1
         return inner
     return func_wrapper
-
-
-if __name__ == '__main__':
-    import logging
-
-    BASE_PATH = Path(__file__).resolve()
-    PATH_TO_LOG = BASE_PATH.parents[3].joinpath('logs', 'backoff')
-
-    _log_format = (
-        '%(asctime)s - [%(levelname)s] -  %(name)s - ',
-        '(%(filename)s).%(funcName)s(%(lineno)d) - %(message)s',
-    )
-
-    logging.basicConfig(
-        level=logging.DEBUG,
-        format=_log_format,
-        handlers=[
-            logging.StreamHandler(),
-            logging.FileHandler(
-                filename=PATH_TO_LOG, mode='a', encoding='utf8',
-            ),
-        ])

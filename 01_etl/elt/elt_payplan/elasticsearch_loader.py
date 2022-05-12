@@ -34,5 +34,6 @@ class ElasticsearchLoader(ElasticConnector):
             for item in data
         )
 
+    @backoff
     def bulk_data_to_elastic(self, index, data: List[Film]) -> None:
         helpers.bulk(self.client, self.generate_elastic_data(index, data))

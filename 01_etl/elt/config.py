@@ -1,32 +1,57 @@
-import os
+from pathlib import Path
 
 from dotenv import load_dotenv
+from pydantic import BaseConfig, BaseSettings, Field
 
-load_dotenv()
+ENV_PATH = Path(__file__).resolve().parents[1].joinpath('env', '.env')
+load_dotenv(dotenv_path=ENV_PATH)
 
-postgres_dsl = {
-    'dbname': os.getenv('POSTGRES_DB', None),
-    'user': os.getenv('POSTGRES_USER', None),
-    'password': os.getenv('POSTGRES_PASSWORD', None),
-    'host': os.getenv('DB_HOST', 'localhost'),
-    'port': os.getenv('DB_PORT', '5432'),
-    'options': '-c search_path=content',
-}
 
-redis_dsl = {
-    'host': os.getenv('REDIS_HOST', 'localhost'),
-    'port': os.getenv('REDIS_PORT', '6379'),
-}
+class PostgresDSL(BaseSettings):
+    dbname: str
+    user: str
+    password: str
+    host: str
+    port: str
+    options: str = Field('-c search_path=content')
 
-elastic_dsl = {
-    'hosts': [
-        'http://{host}:{port}'.format(
-            host=os.environ.get('ELASTIC_HOST', 'localhost'),
-            port=os.environ.get('ELASTIC_PORT', '9200'),
-        ),
-    ],
-    'http_auth': (
-        os.environ.get('ELASTIC_USER', None),
-        os.environ.get('ELASTIC_PASSWORD', None),
-    ),
-}
+    class Config(BaseConfig):
+        fields = {
+            'dbname': {'env': 'POSTGRES_DB'},
+            'user': {'env': 'POSTGRES_USER'},
+            'password': {'env': 'POSTGRES_PASSWORD'},
+            'host': {'env': 'DB_HOST'},
+            'port': {'env': 'DB_PORT'},
+        }
+
+
+class RedisDSL(BaseSettings):
+    hosts: str
+    port: str
+
+    class Config(BaseConfig):
+        fields = {
+            'hosts': {'env': 'REDIS_HOST'},
+            'port': {'env': 'REDIS_PORT'},
+        }
+
+
+class ElasticDSL(BaseSettings):
+    host: str
+    port: str
+
+    class Config(BaseConfig):
+        fields = {
+            'host': {'env': 'ELASTIC_HOST'},
+            'port': {'env': 'ELASTIC_PORT'},
+        }
+
+
+class Settings(BaseSettings):
+    postgres_dsl: PostgresDSL = PostgresDSL()
+    redis_dsl: RedisDSL = RedisDSL()
+    elastic_dsl: ElasticDSL = ElasticDSL()
+
+    class Config(BaseConfig):
+        env_file = ENV_PATH.as_posix()
+        env_file_encoding = 'utf-8'
